@@ -1,25 +1,23 @@
-# Step 1: Download and Extract Alertmanager
-    - name: Download Alertmanager tarball
-      ansible.builtin.get_url:
-        url: https://github.com/prometheus/alertmanager/releases/download/v0.27.0/alertmanager-0.27.0.linux-amd64.tar.gz
-        dest: /tmp/alertmanager-0.27.0.linux-amd64.tar.gz
+  - name: Download and Extract Alertmanager
+    ansible.builtin.get_url:
+      url: https://github.com/prometheus/alertmanager/releases/download/v0.27.0/alertmanager-0.27.0.linux-amd64.tar.gz
+      dest: /tmp/alertmanager.tar.gz
+    ansible.builtin.unarchive:
+      src: /tmp/alertmanager.tar.gz
+      dest: /tmp
+      remote_src: yes
+    ansible.builtin.file:
+      path: /tmp/alertmanager-0.27.0.linux-amd64
+      state: directory
 
-    - name: Extract Alertmanager tarball
-      ansible.builtin.unarchive:
-        src: /tmp/alertmanager-0.27.0.linux-amd64.tar.gz
-        dest: /tmp/
-        remote_src: yes
-
-    - name: Move alertmanager binary to /usr/local/bin
-      ansible.builtin.command:
-        cmd: mv /tmp/alertmanager-0.27.0.linux-amd64/alertmanager /usr/local/bin/
+  - name: Move alertmanager binary to /usr/local/bin
+    ansible.builtin.command:
+      cmd: mv /tmp/alertmanager-0.27.0.linux-amd64/alertmanager /usr/local/bin/
       become: true
-
-    - name: Move amtool binary to /usr/local/bin
-      ansible.builtin.command:
-        cmd: mv /tmp/alertmanager-0.27.0.linux-amd64/amtool /usr/local/bin/
-      become: true
-
+    ansible.builtin.file:
+      path: /usr/local/bin/alertmanager
+      mode: 0755
+      state: file
 
 
     # Step 2: Configure Prometheus alert rules
