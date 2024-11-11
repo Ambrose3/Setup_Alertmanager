@@ -3,4 +3,4 @@
   hosts: CT01
   become: true
   roles:
-  - alertmanager
+
