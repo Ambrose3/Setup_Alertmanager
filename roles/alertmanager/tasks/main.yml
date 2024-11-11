@@ -10,14 +10,11 @@
         dest: /tmp/
         remote_src: yes
 
-    - name: Move Alertmanager binaries to /usr/local/bin/
-      ansible.builtin.copy:
-        src: /tmp/alertmanager-0.27.0.linux-amd64/{{ item }}
-        dest: /usr/local/bin/
-        mode: '0755'
-      loop:
-        - alertmanager
-        - amtool
+    - name: Move alertmanager binary to /usr/local/bin
+      command: mv alertmanager-0.27.0.linux-amd64/alertmanager /usr/local/bin/
+
+    - name: Move amtool binary to /usr/local/bin
+      command: mv alertmanager-0.27.0.linux-amd64/amtool /usr/local/bin/
 
     # Step 2: Configure Prometheus alert rules
     - name: Create Prometheus alert rules file
