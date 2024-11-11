@@ -32,6 +32,11 @@
 #     dest: /etc/prometheus/alert.rules.yml
 #     mode: '0644'
       
+- name: Ensure /etc/alertmanager directory exists
+  file:
+    path: /etc/alertmanager
+    state: directory
+    mode: '0755'
 
     # Step 3: Configure Alertmanager
 - name: Create Alertmanager configuration file
