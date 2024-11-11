@@ -25,128 +25,115 @@
     state: file
 
 
-- name: Configure Prometheus alert rules
-  ansible.builtin.copy:
-    dest: /etc/prometheus/alert.rules.yml
-    content: |
-      groups:
-      - name: node
-        rules:
-        - alert: NodeDown
-          expr: up == 0
-          for: 1m
-          labels:
-            severity: critical
-          annotations:
-            title: Node {{ $labels.instance }} is down
-            description: Failed to scrape {{ $labels.job }} on {{ $labels.instance }} for more than 1 minute. Node seems down.
-        - alert: HighCPUUsage
-          expr: 100 - (avg by (instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
-          for: 5m
-          labels:
-            severity: warning
-          annotations:
-            summary: "High CPU usage on {{ $labels.instance }}"
-            description: "{{ $labels.instance }} has a CPU usage of {{ $value }}% for more than 5 minutes"
-        - alert: HighRAMUsage
-          expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100 > 80
-          for: 30s
-          labels:
-            severity: warning
-          annotations:
-            summary: "High RAM usage on {{ $labels.instance }}"
-            description: "{{ $labels.instance }} has a RAM usage of {{ $value }}% for more than 5 minutes"
-        - alert: HighDiskUsage
-          expr: node_filesystem_avail_bytes / node_filesystem_size_bytes * 100 < 20
-          for: 5m
-          labels:
-            severity: warning
-          annotations:
-            summary: "High disk usage on {{ $labels.instance }} ({{ $labels.device }})"
-            description: "{{ $labels.instance }} has a disk usage of {{ $value }}% for more than 5 minutes on device {{ $labels.device }}"
+# Step 2: Configure Prometheus alert rules
+    - name: Create Prometheus alert rules file
+      ansible.builtin.copy:
+        dest: /etc/prometheus/alert.rules.yml
+        content: |
+          groups:
+          - name: node
+            rules:
+            - alert: NodeDown
+              expr: up == 0
+              for: 1m
+              labels:
+                severity: critical
+              annotations:
+                title: Node {{ $labels.instance }} is down
+                description: Failed to scrape {{ $labels.job }} on {{ $labels.instance }} for more than 1 minutes. Node seems down.
+            - alert: HighCPUUsage
+              expr: 100 - (avg by (instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+              for: 5m
+              labels:
+                severity: warning
+              annotations:
+                summary: "High CPU usage on {{ $labels.instance }}"
+                description: "{{ $labels.instance }} has a CPU usage of {{ $value }}% for more than 5 minutes"
+            - alert: HighRAMUsage
+              expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100 > 80
+              for: 30s
+              labels:
+                severity: warning
+              annotations:
+                summary: "High RAM usage on {{ $labels.instance }}"
+                description: "{{ $labels.instance }} has a RAM usage of {{ $value }}% for more than 5 minutes"
+            - alert: HighDiskUsage
+              expr: node_filesystem_avail_bytes / node_filesystem_size_bytes * 100 < 20
+              for: 5m
+              labels:
+                severity: warning
+              annotations:
+                summary: "High disk usage on {{ $labels.instance }} ({{ $labels.device }})"
+                description: "{{ $labels.instance }} has a disk usage of {{ $value }}% for more than 5 minutes on device {{ $labels.device }}"
 
-      - name: network
-        rules:
-        - record: node_network_receive_bytes_total_rate
-          expr: rate(node_network_receive_bytes_total[5m])
-        - record: node_network_transmit_bytes_total_rate
-          expr: rate(node_network_transmit_bytes_total[5m])
-        - alert: NetworkReceiveHigh
-          expr: node_network_receive_bytes_total_rate > 1000000
-          for: 10m
-          labels:
-            severity: warning
-          annotations:
-            summary: "High network receive rate (instance {{ $labels.instance }})"
-            description: "Network receive rate is above 1 MB/s for more than 10 minutes (current value: {{ $value }})"
-        - alert: NetworkTransmitHigh
-          expr: node_network_transmit_bytes_total_rate > 1000000
-          for: 10m
-          labels:
-            severity: warning
-          annotations:
-            summary: "High network transmit rate (instance {{ $labels.instance }})"
-            description: "Network transmit rate is above 1 MB/s for more than 10 minutes (current value: {{ $value }})"
+          - name: network
+            rules:
+            - record: node_network_receive_bytes_total_rate
+              expr: rate(node_network_receive_bytes_total[5m])
+            - record: node_network_transmit_bytes_total_rate
+              expr: rate(node_network_transmit_bytes_total[5m])
+            - alert: NetworkReceiveHigh
+              expr: node_network_receive_bytes_total_rate > 1000000
+              for: 10m
+              labels:
+                severity: warning
+              annotations:
+                summary: "High network receive rate (instance {{ $labels.instance }})"
+                description: "Network receive rate is above 1 MB/s for more than 10 minutes (current value: {{ $value }})"
+            - alert: NetworkTransmitHigh
+              expr: node_network_transmit_bytes_total_rate > 1000000
+              for: 10m
+              labels:
+                severity: warning
+              annotations:
+                summary: "High network transmit rate (instance {{ $labels.instance }})"
+                description: "Network transmit rate is above 1 MB/s for more than 10 minutes (current value: {{ $value }})"
 
-- name: Configure Alertmanager
-  ansible.builtin.copy:
-    dest: /etc/alertmanager/alertmanager.yml
-    content: |
-      global:
-        resolve_timeout: 5m
+    # Step 3: Configure Alertmanager
+    - name: Create Alertmanager configuration file
+      ansible.builtin.copy:
+        dest: /etc/alertmanager/alertmanager.yml
+        content: |
+          global:
+            resolve_timeout: 5m
 
-      route:
-        group_by: ['alertname']
-        group_wait: 10s
-        group_interval: 10s
-        repeat_interval: 3600s
-        receiver: 'email'
+          route:
+            group_by: ['alertname']
+            group_wait: 10s
+            group_interval: 10s
+            repeat_interval: 3600s
+            receiver: 'email'
 
-      receivers:
-      - name: 'email'
-        email_configs:
-        - to: 'truongthanh2a3@gmail.com'
-          from: 'truongthanh2a3@gmail.com'
-          smarthost: 'smtp.gmail.com:587'
-          auth_username: 'truongthanh2a3@gmail.com'
-          auth_identity: 'truongthanh2a3@gmail.com'
-          auth_password: 'tnmi cnzp qxts tlnl'  
+          receivers:
+          - name: 'email'
+            email_configs:
+            - to: 'truongthanh2a3@gmail.com'
+              from: 'truongthanh2a3@gmail.com'
+              smarthost: 'smtp.gmail.com:587'
+              auth_username: 'truongthanh2a3@gmail.com'
+              auth_identity: 'truongthanh2a3@gmail.com'
+              auth_password: 'tnmi cnzp qxts tlnl'
 
-- name: Ensure /etc/alertmanager directory exists
-  ansible.builtin.file:
-    path: /etc/alertmanager
-    state: directory
-    mode: '0755'
+    # Step 4: Configure systemd service for Alertmanager
+    - name: Create Alertmanager systemd service file
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/alertmanager.service
+        content: |
+          [Unit]
+          Description=Alertmanager
+          Wants=network-online.target
+          After=network-online.target
 
-- name: Create Alertmanager systemd service file
-  ansible.builtin.copy:
-    dest: /etc/systemd/system/alertmanager.service
-    content: |
-      [Unit]
-      Description=Alertmanager
-      Wants=network-online.target
-      After=network-online.target
+          [Service]
+          User=root
+          ExecStart=/usr/local/bin/alertmanager --config.file=/etc/alertmanager/alertmanager.yml
 
-      [Service]
-      User=root
-      ExecStart=/usr/local/bin/alertmanager --config.file=/etc/alertmanager/alertmanager.yml
+          [Install]
+          WantedBy=default.target
 
-      [Install]
-      WantedBy=default.target
-
-- name: Reload systemd and start alertmanager
-  ansible.builtin.systemd:
-    name: alertmanager
-    state: restarted
-    enabled: true
-
-- name: Check status of alertmanager service
-  ansible.builtin.systemd:
-    name: alertmanager
-    state: started
-    enabled: true
-  register: alertmanager_status
-
-- name: Display status of alertmanager service
-  debug:
-    msg: "Alertmanager service is {{ alertmanager_status.status }}"
+    # Step 5: Enable and restart Alertmanager service
+    - name: Reload systemd and start alertmanager
+      ansible.builtin.systemd:
+        name: alertmanager
+        state: restarted
+        enabled: true
