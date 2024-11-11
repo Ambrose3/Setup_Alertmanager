@@ -26,11 +26,11 @@
 
 
 
-- name: Create Prometheus alert rules file
-  ansible.builtin.template:
-    src: "alertmanager.j2"
-    dest: /etc/prometheus/alert.rules.yml
-    mode: '0644'
+# - name: Create Prometheus alert rules file
+#   ansible.builtin.template:
+#     src: "alertmanager.j2"
+#     dest: /etc/prometheus/alert.rules.yml
+#     mode: '0644'
       
 
     # Step 3: Configure Alertmanager
